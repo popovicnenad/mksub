@@ -22,7 +22,7 @@ func main() {
 	}
 	defer wordlistFile.Close()
 
-	wordSet :=  make(map[string]bool)
+	wordSet := make(map[string]bool)
 	reg, _ := regexp.Compile("[^a-zA-Z0-9-_.]+")
 	scanner := bufio.NewScanner(wordlistFile)
 
