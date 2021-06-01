@@ -10,6 +10,8 @@ Usage of mksub:
     	Domain
   -w string
     	Wordlist file
+  -o string
+    	Output file (optional)
 ```
 
 ### Example
