@@ -13,6 +13,7 @@ import (
 func main() {
 	domain := flag.String("d", "", "Domain")
 	wordlist := flag.String("w", "", "Wordlist file")
+	output := flag.String("o", "", "Output file (optional)")
 	flag.Parse()
 
 	wordlistFile, err := os.Open(*wordlist)
@@ -31,6 +32,17 @@ func main() {
 		if _, isOld := wordSet[word]; word != "" && !isOld  {
 			wordSet[word] = true
 			fmt.Println(word + "." + *domain)
+		}
+	}
+
+	if *output != "" {
+		outputFile, err := os.Create(*output)
+		if err != nil {
+			fmt.Println(err.Error())
+			os.Exit(1)
+		}
+		for word, _ := range wordSet {
+			_, _ = outputFile.WriteString(word + "." + *domain + "\n")
 		}
 	}
 }
