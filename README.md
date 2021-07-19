@@ -2,14 +2,16 @@ mksub
 -----
 Make subdomains using a wordlist
 
-Read a wordlist file and generate subdomains for given domain.
-Input from wordlist file is lowercased and unique words are processed. Additionally, 
-filter input using regex. 
+Read a wordlist file and generate subdomains for given domain or list of domains.
+Input from wordlist file is lowercased and unique words are processed. Additionally, wordlist can be
+filtered using regex. 
 
 ```
 Usage of mksub:
   -d string
-    	Domain
+        Input domain
+  -df string
+        Input domain file, one domain per line
   -w string
     	Wordlist file
   -r string

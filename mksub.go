@@ -11,11 +11,33 @@ import (
 
 
 func main() {
-    domain := flag.String("d", "", "Domain")
+    domain := flag.String("d", "", "Input domain")
+    domainFile := flag.String("df", "", "Input domain file, one domain per line")
     wordlist := flag.String("w", "", "Wordlist file")
     r := flag.String("r", "", "Regex to filter words from wordlist file")
     output := flag.String("o", "", "Output file (optional)")
     flag.Parse()
+
+    inputDomains := make([]string, 0)
+    if *domain != "" {
+        inputDomains = append(inputDomains, *domain)
+    }
+    if *domainFile != "" {
+        inputFile, err := os.Open(*domainFile)
+        if err != nil {
+            fmt.Println(err.Error())
+            os.Exit(1)
+        }
+        defer inputFile.Close()
+        scanner := bufio.NewScanner(inputFile)
+        for scanner.Scan() {
+            inputDomains = append(inputDomains, scanner.Text())
+        }
+    }
+    if len(inputDomains) == 0 {
+        fmt.Println("No input provided")
+        os.Exit(1)
+    }
 
     wordlistFile, err := os.Open(*wordlist)
     if err != nil {
@@ -55,9 +77,11 @@ func main() {
         }
         if _, isOld := wordSet[word]; word != "" && !isOld  {
             wordSet[word] = true
-            fmt.Println(word + "." + *domain)
-            if outputFile != nil {
-                _, _ = outputFile.WriteString(word + "." + *domain + "\n")
+            for _, domain := range inputDomains {
+                fmt.Println(word + "." + domain)
+                if outputFile != nil {
+                    _, _ = outputFile.WriteString(word + "." + domain + "\n")
+                }
             }
         }
     }
