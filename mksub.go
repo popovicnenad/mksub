@@ -14,6 +14,7 @@ func main() {
     domain := flag.String("d", "", "Domain")
     wordlist := flag.String("w", "", "Wordlist file")
     r := flag.String("r", "", "Regex to filter words from wordlist file")
+    level := flag.Int("l", 1, "Subdomain level to generate (default 1)")
     output := flag.String("o", "", "Output file (optional)")
     flag.Parse()
 
@@ -55,10 +56,31 @@ func main() {
         }
         if _, isOld := wordSet[word]; word != "" && !isOld  {
             wordSet[word] = true
-            fmt.Println(word + "." + *domain)
-            if outputFile != nil {
-                _, _ = outputFile.WriteString(word + "." + *domain + "\n")
+            //fmt.Println(word + "." + *domain)
+            //if outputFile != nil {
+            //    _, _ = outputFile.WriteString(word + "." + *domain + "\n")
+            //}
+        }
+    }
+    results := make([]string, 0)
+    for i:=0; i<*level; i+=1{
+        mergeWords := results[0:len(results)]
+        if len(mergeWords) == 0 {
+            for word, _ := range wordSet {
+                results = append(results, word)
             }
+        } else {
+            for _, mw := range mergeWords {
+                for word, _ := range wordSet {
+                    results = append(results, fmt.Sprintf("%s.%s", word, mw))
+                }
+            }
+        }
+    }
+    for _, subdomain := range results {
+        fmt.Println(subdomain + "." + *domain)
+        if outputFile != nil {
+           _, _ = outputFile.WriteString(subdomain + "." + *domain + "\n")
         }
     }
 }
