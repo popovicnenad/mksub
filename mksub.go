@@ -78,23 +78,20 @@ func main() {
         }
         if _, isOld := wordSet[word]; word != "" && !isOld  {
             wordSet[word] = true
-            //fmt.Println(word + "." + *domain)
-            //if outputFile != nil {
-            //    _, _ = outputFile.WriteString(word + "." + *domain + "\n")
-            //}
         }
     }
+
     results := make([]string, 0)
-    for i:=0; i<*level; i+=1{
-        mergeWords := results[0:len(results)]
-        if len(mergeWords) == 0 {
+    for i:=0; i<*level; i+=1 {
+        toMerge := results[0:]
+        if len(toMerge) == 0 {
             for word, _ := range wordSet {
                 results = append(results, word)
             }
         } else {
-            for _, mw := range mergeWords {
+            for _, sd := range toMerge {
                 for word, _ := range wordSet {
-                    results = append(results, fmt.Sprintf("%s.%s", word, mw))
+                    results = append(results, fmt.Sprintf("%s.%s", word, sd))
                 }
             }
         }
