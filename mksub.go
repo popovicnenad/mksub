@@ -7,49 +7,94 @@ import (
     "os"
     "regexp"
     "strings"
+    "sync"
 )
 
+var (
+    //flags
+    domain *string
+    domainFile *string
+    wordlist *string
+    regex *string
+    level *int
+    output *string
 
-func main() {
-    domain := flag.String("d", "", "Input domain")
-    domainFile := flag.String("df", "", "Input domain file, one domain per line")
-    wordlist := flag.String("w", "", "Wordlist file")
-    r := flag.String("r", "", "Regex to filter words from wordlist file")
-    level := flag.Int("l", 1, "Subdomain level to generate (default 1)")
-    output := flag.String("o", "", "Output file (optional)")
-    flag.Parse()
+    inputDomains []string
+    wordSet map[string]bool
+    writeMutex sync.Mutex
+)
 
-    inputDomains := make([]string, 0)
+func fileReadDomain(fileName string) {
+    inputFile, err := os.Open(fileName)
+    if err != nil {
+        panic("Could not open file to read domains!")
+    }
+    defer inputFile.Close()
+
+    scanner := bufio.NewScanner(inputFile)
+    for scanner.Scan() {
+        inputDomains = append(inputDomains, strings.TrimSpace(scanner.Text()))
+    }
+}
+
+func prepareDomains() {
+    if *domain == "" && *domainFile == "" {
+        fmt.Println("No domain input provided")
+        os.Exit(1)
+    }
+
+    inputDomains = make([]string, 0)
     if *domain != "" {
         inputDomains = append(inputDomains, *domain)
-    }
-    if *domainFile != "" {
-        inputFile, err := os.Open(*domainFile)
-        if err != nil {
-            fmt.Println(err.Error())
-            os.Exit(1)
-        }
-        defer inputFile.Close()
-        scanner := bufio.NewScanner(inputFile)
-        for scanner.Scan() {
-            inputDomains = append(inputDomains, scanner.Text())
+    } else {
+        if *domainFile != "" {
+            fileReadDomain(*domainFile)
         }
     }
-    if len(inputDomains) == 0 {
-        fmt.Println("No input provided")
-        os.Exit(1)
+}
+
+func processWordList (domain string, outputFile *os.File, wg *sync.WaitGroup) {
+    defer wg.Done()
+
+    results := make([]string, 0)
+    for word := range wordSet {
+        results = append(results, word)
+    }
+    toMerge := results[0:]
+
+    for i:=0; i< *level-1; i++ {
+        toMerge = results[0:]
+        for _, sd := range toMerge {
+            for word := range wordSet {
+                results = append(results, word + "." + sd)
+            }
+        }
     }
 
-    wordlistFile, err := os.Open(*wordlist)
-    if err != nil {
-        fmt.Println(err.Error())
-        os.Exit(1)
+    for _, subdomain := range results {
+        fmt.Println(subdomain + "." + domain)
+        writeMutex.Lock()
+        _, _ = outputFile.WriteString(subdomain + "." + domain + "\n")
+        writeMutex.Unlock()
     }
-    defer wordlistFile.Close()
+
+}
+
+func main() {
+    domain = flag.String("d", "", "Input domain")
+    domainFile = flag.String("df", "", "Input domain file, one domain per line")
+    wordlist = flag.String("w", "", "Wordlist file")
+    regex = flag.String("r", "", "Regex to filter words from wordlist file")
+    level = flag.Int("l", 1, "Subdomain level to generate (default 1)")
+    output = flag.String("o", "", "Output file (optional)")
+    flag.Parse()
+
+    prepareDomains()
 
     var reg *regexp.Regexp
-    if *r != "" {
-        reg, err = regexp.Compile(*r)
+    var err error
+    if *regex != "" {
+        reg, err = regexp.Compile(*regex)
         if err != nil {
             fmt.Println(err.Error())
             os.Exit(1)
@@ -66,9 +111,15 @@ func main() {
         defer outputFile.Close()
     }
 
-    wordSet := make(map[string]bool)
-    scanner := bufio.NewScanner(wordlistFile)
+    wordlistFile, err := os.Open(*wordlist)
+    if err != nil {
+        fmt.Println(err.Error())
+        os.Exit(1)
+    }
+    defer wordlistFile.Close()
 
+    wordSet = make(map[string]bool)
+    scanner := bufio.NewScanner(wordlistFile)
     for scanner.Scan() {
         word := strings.ToLower(scanner.Text())
         if reg != nil {
@@ -76,32 +127,16 @@ func main() {
                 continue
             }
         }
-        if _, isOld := wordSet[word]; word != "" && !isOld  {
+        if word != "" {
             wordSet[word] = true
         }
     }
 
-    results := make([]string, 0)
-    for i:=0; i<*level; i+=1 {
-        toMerge := results[0:]
-        if len(toMerge) == 0 {
-            for word, _ := range wordSet {
-                results = append(results, word)
-            }
-        } else {
-            for _, sd := range toMerge {
-                for word, _ := range wordSet {
-                    results = append(results, fmt.Sprintf("%s.%s", word, sd))
-                }
-            }
-        }
+    var wg sync.WaitGroup
+    for _, dom := range inputDomains {
+        wg.Add(1)
+        go processWordList(dom, outputFile, &wg)
     }
-    for _, domain := range inputDomains {
-        for _, subdomain := range results {
-            fmt.Println(subdomain + "." + domain)
-            if outputFile != nil {
-                _, _ = outputFile.WriteString(subdomain + "." + domain + "\n")
-            }
-        }
-    }
+
+    wg.Wait()
 }
