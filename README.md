@@ -1,6 +1,6 @@
 mksub
 -----
-> ## ⚠️ Archived in favor of https://github.com/trickest/mksub
+> ## ⚠️ Archived in favor of [trickest/mksub](https://github.com/trickest/mksub)
 Make subdomains using a wordlist
 
 
