@@ -1,6 +1,10 @@
 mksub
 -----
+> ## ⚠️ Archived in favor of https://github.com/trickest/mksub
 Make subdomains using a wordlist
+
+
+
 
 Read a wordlist file and generate subdomains for given domain or list of domains.
 Input from wordlist file is lowercased and unique words are processed. Additionally, wordlist can be
